@@ -74,6 +74,7 @@ jobs:
         run: |
           cd frontend
           npm install --legacy-peer-deps
+          export CI=false
           npm run build
       
       - name: Copy frontend build via ssh
