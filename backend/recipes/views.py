@@ -11,6 +11,8 @@ from .filters import RecipeFilter
 from .models import Favorite, Recipe, ShoppingCart
 from .permissions import IsAuthorOrReadOnly
 from .serializers import RecipeCreateUpdateSerializer, RecipeListSerializer
+from django.http import HttpResponse
+from recipes.models import ShoppingCart, IngredientInRecipe
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -110,40 +112,31 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=['get'],
-        permission_classes=[IsAuthenticated],
-        url_path='download_shopping_cart'
+        permission_classes=[IsAuthenticated]
     )
     def download_shopping_cart(self, request):
-        from ingredients.models import IngredientInRecipe
-
-        ingredients = {}
-        recipes_in_cart = ShoppingCart.objects.filter(
-            user=request.user
-        ).values_list('recipe_id', flat=True)
-        ingredient_list = IngredientInRecipe.objects.filter(
-            recipe_id__in=recipes_in_cart
-        )
-
-        for item in ingredient_list:
+        user = request.user
+        recipe_ids = ShoppingCart.objects.filter(user=user).values_list('recipe_id',flat=True)
+        ingredients_in_recipes = IngredientInRecipe.objects.filter(
+            recipe_id__in=recipe_ids
+        ).select_related('ingredient')
+        shopping_list = {}
+        for item in ingredients_in_recipes:
             name = item.ingredient.name
             unit = item.ingredient.measurement_unit
-            if name not in ingredients:
-                ingredients[name] = {
-                    'measurement_unit': unit,
-                    'amount': 0,
-                }
-            ingredients[name]['amount'] += item.amount
-
-        shopping_list = []
-        for index, (name, data) in enumerate(ingredients.items(), 1):
-            line = (
-                f"{index}. {name.capitalize()} - "
-                f"{data['amount']} {data['measurement_unit']}"
-            )
-            shopping_list.append(line)
-
-        content = '\n'.join(shopping_list)
-        return Response(content, status=status.HTTP_200_OK)
+            amount = item.amount
+            key = f"{name} ({unit})"
+            if key in shopping_list:
+                shopping_list[key] += amount
+            else:
+                shopping_list[key] = amount
+        lines = ["Список покупок:\n"]
+        for index, (ingredient_info, total_amount) in enumerate(shopping_list.items(), 1):
+            lines.append(f"{index}. {ingredient_info} — {total_amount}")
+        content = "\n".join(lines)
+        response = HttpResponse(content, content_type='text/plain; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
+        return response
 
     @action(
         detail=True, methods=['get'],

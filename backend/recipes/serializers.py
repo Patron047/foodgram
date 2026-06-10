@@ -1,11 +1,9 @@
 import base64
 from django.core.files.base import ContentFile
 from rest_framework import serializers
-
 from ingredients.models import Ingredient
 from tags.models import Tag
 from users.serializers import UserProfileSerializer
-
 from .models import Favorite, ShoppingCart, IngredientInRecipe, Recipe
 
 
@@ -90,9 +88,15 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
                     f"Ингредиент с id {ing_id} уже добавлен в рецепт"
                 )
             seen_ids.add(ing_id)
+            try:
+                amount = int(amount)
+            except (ValueError, TypeError):
+                raise serializers.ValidationError(
+                    f"Некорректное количество для ингредиента {ing_id}"
+                )
 
-            if not amount or amount < 1:
-                raise serializers.ValidationError("Укажите количество")
+            if amount < 1:
+                raise serializers.ValidationError("Должно быть больше 0")
             try:
                 ingredient = Ingredient.objects.get(id=ing_id)
             except Ingredient.DoesNotExist:

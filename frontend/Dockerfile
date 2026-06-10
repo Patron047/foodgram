@@ -14,7 +14,6 @@ COPY . ./
 RUN npm run build
 
 RUN mkdir -p /app/result_build
+RUN cp -r /app/build/* /app/result_build/
 
-RUN cp -r build/* result_build/
-
-CMD ["sh", "-c", "echo 'Frontend build completed. Files are in /app/result_build'"]
+CMD ["sh", "-c", "echo 'Frontend build completed. Files are in /app/result_build' && exit 0"]
