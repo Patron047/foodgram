@@ -11,7 +11,7 @@ djangorestframework==3.14.0
 djangorestframework_simplejwt==5.5.1
 djoser==2.2.2
 flake8==7.3.0
-flake8-isort==7.0.0
+flake8-isort==6.1.1
 idna==3.17
 isort==8.0.1
 mccabe==0.7.0
