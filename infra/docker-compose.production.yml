@@ -30,6 +30,7 @@ services:
       - media_value:/media/
       - certbot_www:/var/www/certbot
       - certbot_conf:/etc/letsencrypt
+      - frontend_static:/usr/share/nginx/html/
     depends_on:
       - backend
 
@@ -47,3 +48,4 @@ volumes:
   media_value:
   certbot_www:
   certbot_conf:
+  frontend_static:
