@@ -1,4 +1,5 @@
 import csv
+
 from django.core.management.base import BaseCommand
 from ingredients.models import Ingredient
 
@@ -17,7 +18,7 @@ class Command(BaseCommand):
             reader = csv.reader(f)
             for row in reader:
                 if len(row) < 2:
-                    continue  
+                    continue
                 name = row[0].strip()
                 unit = row[1].strip()
                 if name and unit:
@@ -27,4 +28,6 @@ class Command(BaseCommand):
                     )
                     count += 1
 
-        self.stdout.write(self.style.SUCCESS(f'Загружено {count} ингредиентов'))
+        self.stdout.write(
+            self.style.SUCCESS(f'Загружено {count} ингредиентов')
+        )

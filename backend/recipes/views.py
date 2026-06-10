@@ -1,18 +1,16 @@
 from django.db.models import Prefetch
+from django.http import HttpResponse
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import (
-    IsAuthenticated,
-    IsAuthenticatedOrReadOnly,
-)
+from rest_framework.permissions import (IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
+
 from .filters import RecipeFilter
-from .models import Favorite, Recipe, ShoppingCart
+from .models import Favorite, IngredientInRecipe, Recipe, ShoppingCart
 from .permissions import IsAuthorOrReadOnly
 from .serializers import RecipeCreateUpdateSerializer, RecipeListSerializer
-from django.http import HttpResponse
-from recipes.models import ShoppingCart, IngredientInRecipe
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -93,19 +91,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
         user = request.user
         if request.method == 'POST':
             if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
-                return Response({'detail': 'Уже в списке покупок'},
-                                status=status.HTTP_400_BAD_REQUEST
-                                )
+                return Response(
+                    {'detail': 'Уже в списке покупок'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             ShoppingCart.objects.create(user=user, recipe=recipe)
-            serializer = RecipeListSerializer(recipe,
-                                              context={'request': request}
-                                              )
+            serializer = RecipeListSerializer(
+                recipe, context={'request': request}
+            )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         cart = ShoppingCart.objects.filter(user=user, recipe=recipe).first()
         if not cart:
-            return Response({'detail': 'Нет в списке покупок'},
-                            status=status.HTTP_400_BAD_REQUEST
-                            )
+            return Response(
+                {'detail': 'Нет в списке покупок'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         cart.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -116,7 +116,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         user = request.user
-        recipe_ids = ShoppingCart.objects.filter(user=user).values_list('recipe_id',flat=True)
+        recipe_ids = ShoppingCart.objects.filter(
+            user=user
+        ).values_list('recipe_id', flat=True)
         ingredients_in_recipes = IngredientInRecipe.objects.filter(
             recipe_id__in=recipe_ids
         ).select_related('ingredient')
@@ -131,11 +133,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
             else:
                 shopping_list[key] = amount
         lines = ["Список покупок:\n"]
-        for index, (ingredient_info, total_amount) in enumerate(shopping_list.items(), 1):
+        for index, (ingredient_info, total_amount) in enumerate(
+            shopping_list.items(), 1
+        ):
             lines.append(f"{index}. {ingredient_info} — {total_amount}")
         content = "\n".join(lines)
-        response = HttpResponse(content, content_type='text/plain; charset=utf-8')
-        response['Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
+        response = HttpResponse(
+            content, content_type='text/plain; charset=utf-8'
+        )
+        response['Content-Disposition'] = (
+            'attachment; filename="shopping_list.txt"'
+        )
         return response
 
     @action(
