@@ -13,7 +13,8 @@ COPY . ./
 
 RUN npm run build
 
-RUN mkdir -p /app/result_build
-RUN cp -r /app/build/* /app/result_build/
+FROM nginx:stable-alpine
 
-CMD ["sh", "-c", "echo 'Frontend build completed. Files are in /app/result_build' && exit 0"]
+COPY --from=build /app/result_build/ /usr/share/nginx/html/
+
+CMD ["nginx", "-g", "daemon off;"]
