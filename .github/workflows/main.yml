@@ -69,7 +69,6 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v3
         
-      # ✅ ДОБАВЛЕНО: Сборка фронтенда ПЕРЕД отправкой на сервер
       - name: Build frontend
         run: |
           cd frontend
@@ -83,9 +82,9 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: "frontend/build/"  # ← Копируем ТОЛЬКО содержимое папки build
+          source: "frontend/build/"
           target: "~/foodgram/frontend_static"
-          strip_components: 1        # ← Убираем лишнюю вложенность папки build
+          strip_components: 1
           
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -110,7 +109,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
         
-      # ✅ ИСПРАВЛЕНО: копируем docker-compose в корень ~/foodgram/
       - name: Copy docker-compose.production.yml via ssh
         uses: appleboy/scp-action@master
         with:
@@ -121,7 +119,6 @@ jobs:
           target: "~/foodgram/"
           strip_components: 1
           
-      # ✅ nginx.conf остаётся в infra/, так как путь в compose относительный ./nginx.conf
       - name: Copy nginx.conf via ssh
         uses: appleboy/scp-action@master
         with:

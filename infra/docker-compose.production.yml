@@ -20,7 +20,7 @@ services:
   nginx:
     image: patron047/foodgram_nginx:latest
     restart: unless-stopped
-    command: ["nginx", "-g", "daemon off;"]  # ← Просто запускаем nginx
+    command: ["nginx", "-g", "daemon off;"]
     ports:
       - "80:80"
       - "443:443"

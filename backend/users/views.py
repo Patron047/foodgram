@@ -36,7 +36,6 @@ class UserViewSet(DjoserUserViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
-            # Возвращаем только avatar, как ожидает тест
             return Response(
                 {'avatar': request.build_absolute_uri(user.avatar.url)},
                 status=status.HTTP_200_OK

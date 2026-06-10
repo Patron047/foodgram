@@ -19,7 +19,6 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
-# Сериализатор ТОЛЬКО для чтения ингредиентов в ответе
 class IngredientInRecipeReadSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='ingredient.id')
     name = serializers.CharField(source='ingredient.name')
