@@ -19,6 +19,7 @@ services:
   nginx:
     image: patron047/foodgram_nginx:latest
     restart: unless-stopped
+    command: ["nginx", "-g", "daemon off;"]
     ports:
       - "80:80"
       - "443:443"
@@ -27,8 +28,8 @@ services:
       - ../docs/:/usr/share/nginx/html/api/docs/
       - static_value:/static/
       - media_value:/media/
-      - certbot_www:/var/www/certbot
-      - certbot_conf:/etc/letsencrypt
+      - foodgram_certbot_www:/var/www/certbot
+      - foodgram_certbot_conf:/etc/letsencrypt
       - frontend_static:/usr/share/nginx/html/
     depends_on:
       - backend
@@ -37,14 +38,14 @@ services:
     image: certbot/certbot
     restart: unless-stopped
     volumes:
-      - certbot_www:/var/www/certbot
-      - certbot_conf:/etc/letsencrypt
+      - foodgram_certbot_www:/var/www/certbot
+      - foodgram_certbot_conf:/etc/letsencrypt
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 volumes:
   pg_data:
   static_value:
   media_value:
-  certbot_www:
-  certbot_conf:
+  foodgram_certbot_www:
+  foodgram_certbot_conf:
   frontend_static:
