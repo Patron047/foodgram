@@ -19,7 +19,14 @@ services:
   nginx:
     image: patron047/foodgram_nginx:latest
     restart: unless-stopped
-    command: ["nginx", "-g", "daemon off;"]
+    command: >
+      sh -c "
+        while [ ! -f /etc/letsencrypt/live/foodgrm.sytes.net/fullchain.pem ]; do
+          echo 'Waiting for SSL certificates...';
+          sleep 5;
+        done;
+        nginx -g 'daemon off;'
+      "
     ports:
       - "80:80"
       - "443:443"
