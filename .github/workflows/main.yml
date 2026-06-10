@@ -90,6 +90,7 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+        
       - name: Copy docker-compose.production.yml via ssh
         uses: appleboy/scp-action@master
         with:
@@ -97,7 +98,17 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           source: "infra/docker-compose.production.yml"
-          target: "foodgram"
+          target: "~/foodgram"
+          
+      - name: Copy nginx.conf via ssh
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "infra/nginx.conf"
+          target: "~/foodgram"
+          
       - name: Copy docs via ssh
         uses: appleboy/scp-action@master
         with:
@@ -105,7 +116,17 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           source: "docs/"
-          target: "foodgram"
+          target: "~/foodgram"
+          
+      - name: Copy frontend build via ssh
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "frontend/build/"
+          target: "~/foodgram/frontend_static"
+          
       - name: Executing remote ssh commands to deploy
         uses: appleboy/ssh-action@master
         with:
@@ -113,18 +134,21 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd foodgram
-            # Создаем .env файл на сервере из секретов
+            cd ~/foodgram
+            
             echo "DB_ENGINE=${{ secrets.DB_ENGINE }}" > .env
             echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
             echo "DB_USER=${{ secrets.DB_USER }}" >> .env
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
             echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
             echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
+            echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
+            echo "DEBUG=0" >> .env
+            echo "ALLOWED_HOSTS=kittygrm.ddns.net,foodgrm.sytes.net,158.160.247.55" >> .env
             
             sudo docker compose -f docker-compose.production.yml pull
             sudo docker compose -f docker-compose.production.yml down
             sudo docker compose -f docker-compose.production.yml up -d
-            sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
-            sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic --no-input
-            sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /static_backend/
+            sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py migrate
+            sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py collectstatic --no-input
+            sudo docker compose -f docker-compose.production.yml exec -T backend sh -c "cp -r /app/static/. /static/" || true
