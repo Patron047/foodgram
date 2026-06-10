@@ -136,15 +136,16 @@ jobs:
           script: |
             cd ~/foodgram
             
-            echo "DB_ENGINE=${{ secrets.DB_ENGINE }}" > .env
-            echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
-            echo "DB_USER=${{ secrets.DB_USER }}" >> .env
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-            echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
-            echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
-            echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
-            echo "DEBUG=0" >> .env
-            echo "ALLOWED_HOSTS=kittygrm.ddns.net,foodgrm.sytes.net,158.160.247.55" >> .env
+            cat > .env << EOF
+            POSTGRES_DB=${{ secrets.DB_NAME }}
+            POSTGRES_USER=${{ secrets.DB_USER }}
+            POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+            DEBUG=0
+            ALLOWED_HOSTS=kittygrm.ddns.net,foodgrm.sytes.net,158.160.247.55,localhost
+            EOF
             
             sudo docker compose -f docker-compose.production.yml pull
             sudo docker compose -f docker-compose.production.yml down
@@ -152,3 +153,4 @@ jobs:
             sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py migrate
             sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py collectstatic --no-input
             sudo docker compose -f docker-compose.production.yml exec -T backend sh -c "cp -r /app/static/. /static/" || true
+            sudo docker compose -f docker-compose.production.yml restart backend
