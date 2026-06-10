@@ -1,3 +1,4 @@
+# Этап 1: Сборка фронтенда
 FROM node:21.7.1-alpine AS build
 
 WORKDIR /app
@@ -13,8 +14,11 @@ COPY . ./
 
 RUN npm run build
 
+# Этап 2: Финальный образ с Nginx
 FROM nginx:stable-alpine
 
-COPY --from=build /app/result_build/ /usr/share/nginx/html/
+# Копируем собранную сборку ИЗ СТАНДАРТНОЙ ПАПКИ build
+COPY --from=build /app/build/ /usr/share/nginx/html/
 
+# Запускаем nginx
 CMD ["nginx", "-g", "daemon off;"]
