@@ -9,6 +9,7 @@ from recipes.views import (IngredientViewSet, RecipeViewSet, TagViewSet,
 from users.views import UserViewSet
 
 router = SimpleRouter()
+
 router.register('users', UserViewSet, basename='user')
 router.register('tags', TagViewSet, basename='tag')
 router.register('ingredients', IngredientViewSet, basename='ingredient')
