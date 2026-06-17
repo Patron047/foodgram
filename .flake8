@@ -8,6 +8,7 @@ exclude =
     migrations,
     requirements.txt,
     backend/requirements.txt,
+    backend/foodgram/settings.py
     *.pyc,
     *.egg-info,
     .eggs

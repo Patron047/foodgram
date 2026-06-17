@@ -33,6 +33,33 @@ Foodgram — это веб-приложение для публикации ре
 - Python 3.10+
 - Docker и Docker Compose
 
+1. Клонируйте репозиторий 
+git clone https://github.com/patron047/foodgram.git
+
+2. Создайте и активируйте виртуальное окружение
+python -m venv venv
+source venv/Scripts/activate
+
+3. Установка зависимостей
+pip install -r requirements.txt
+
+4. Настройка базы данных
+Создайте базу данных и пользователя в PostgreSQL:
+CREATE DATABASE foodgram;
+CREATE USER foodgram_user WITH PASSWORD 'foodgram_password';
+GRANT ALL PRIVILEGES ON DATABASE foodgram TO foodgram_user;
+
+5. Применение миграций
+Перейдите в директорию бэкенда и выполните миграции:
+cd backend
+python manage.py migrate
+
+6. Запуск сервера разработки
+python manage.py runserver
+
+API будет доступен по адресу: http://127.0.0.1:8000/api/
+Административная панель: http://127.0.0.1:8000/admin/
+
 ### 📋 Возможности API
 Полная спецификация доступна по адресу: /api/docs/ после запуска проекта.
 Основные эндпоинты:
