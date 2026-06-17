@@ -1,16 +1,56 @@
+import base64
 from django.db.models import Prefetch
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
-from rest_framework.permissions import (IsAuthenticated,
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-
 from .filters import RecipeFilter
-from .models import Favorite, IngredientInRecipe, Recipe, ShoppingCart
+from .models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
+                     ShoppingCart, Tag)
 from .permissions import IsAuthorOrReadOnly
-from .serializers import RecipeCreateUpdateSerializer, RecipeListSerializer
+from .serializers import (IngredientSerializer, RecipeCreateUpdateSerializer,
+                          RecipeListSerializer, TagSerializer)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def redirect_short_link(request, short_id):
+    """Обрабатывает короткие ссылки вида /s/{short_id}/"""
+    try:
+        padding = '=' * (4 - len(short_id) % 4) if len(short_id) % 4 else ''
+        recipe_id = int(base64.urlsafe_b64decode(short_id + padding).decode())
+    except (ValueError, Exception):
+        return Response(
+            {'detail': 'Некорректная короткая ссылка'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    return HttpResponseRedirect(f'/api/recipes/{recipe.id}/')
+
+
+class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name = self.request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__istartswith=name)
+        return queryset
+
+
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -152,11 +192,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         url_path='get-link', url_name='get-link'
     )
     def get_link(self, request, pk=None):
-        import hashlib
         from urllib.parse import urljoin
         recipe = self.get_object()
-        hash_object = hashlib.sha256(str(recipe.id).encode())
-        short_id = hash_object.hexdigest()[:8]
+        short_id = base64.urlsafe_b64encode(
+            str(recipe.id).encode()
+        ).decode().rstrip('=')
         base_url = f"{request.scheme}://{request.get_host()}"
         short_link = urljoin(base_url, f"/s/{short_id}/")
         return Response({'short-link': short_link}, status=status.HTTP_200_OK)

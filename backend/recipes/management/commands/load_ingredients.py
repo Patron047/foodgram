@@ -1,7 +1,7 @@
 import csv
 
 from django.core.management.base import BaseCommand
-from ingredients.models import Ingredient
+from recipes.models import Ingredient
 
 
 class Command(BaseCommand):
@@ -12,10 +12,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         file_path = options['file_path']
-        count = 0
+        ingredients_count = 0
 
-        with open(file_path, 'r', encoding='utf-8') as f:
-            reader = csv.reader(f)
+        with open(file_path, 'r', encoding='utf-8') as csv_file:
+            reader = csv.reader(csv_file)
             for row in reader:
                 if len(row) < 2:
                     continue
@@ -26,8 +26,8 @@ class Command(BaseCommand):
                         name=name,
                         defaults={'measurement_unit': unit}
                     )
-                    count += 1
+                    ingredients_count += 1
 
         self.stdout.write(
-            self.style.SUCCESS(f'Загружено {count} ингредиентов')
+            self.style.SUCCESS(f'Загружено {ingredients_count} ингредиентов')
         )

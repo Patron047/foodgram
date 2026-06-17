@@ -43,9 +43,7 @@ INSTALLED_APPS = [
     'djoser',
     'users.apps.UsersConfig',
     'rest_framework.authtoken',
-    'ingredients.apps.IngredientsConfig',
     'recipes.apps.RecipesConfig',
-    'tags.apps.TagsConfig'
 ]
 
 AUTH_USER_MODEL = 'users.User'
@@ -106,14 +104,21 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.postgresql',
+#        'NAME': os.getenv('POSTGRES_DB', 'foodgram'),
+#        'USER': os.getenv('POSTGRES_USER', 'foodgram_user'),
+#        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'foodgram_password'),
+#        'HOST': os.getenv('DB_HOST', 'db'),
+#        'PORT': os.getenv('DB_PORT', '5432'),
+#    }
+#}
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'foodgram'),
-        'USER': os.getenv('POSTGRES_USER', 'foodgram_user'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'foodgram_password'),
-        'HOST': os.getenv('DB_HOST', 'db'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
