@@ -2,9 +2,10 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from rest_framework.routers import SimpleRouter
+
 from recipes.views import (IngredientViewSet, RecipeViewSet, TagViewSet,
                            redirect_short_link)
-from rest_framework.routers import SimpleRouter
 from users.views import UserViewSet
 
 router = SimpleRouter()

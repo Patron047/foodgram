@@ -1,7 +1,10 @@
 import base64
+
 from django.core.files.base import ContentFile
 from rest_framework import serializers
+
 from users.serializers import UserProfileSerializer
+
 from .models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
                      ShoppingCart, Tag)
 
