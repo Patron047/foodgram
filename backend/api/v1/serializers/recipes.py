@@ -194,7 +194,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         recipe = Recipe.objects.create(author=request.user, **validated_data)
         recipe.tags.set(tags_data)
         self._save_ingredients(recipe, ingredients_data)
-        return RecipeListSerializer(recipe, context=self.context).data
+        return recipe
 
     def update(self, instance, validated_data):
         ingredients_data = validated_data.pop('ingredients', None)
