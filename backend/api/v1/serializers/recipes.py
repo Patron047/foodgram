@@ -62,6 +62,50 @@ class IngredientWriteSerializer(serializers.Serializer):
     amount = serializers.IntegerField(min_value=1)
 
 
+class RecipeListSerializer(serializers.ModelSerializer):
+    tags = TagSerializer(many=True, read_only=True)
+    author = UserProfileSerializer(read_only=True)
+    ingredients = IngredientInRecipeReadSerializer(
+        source='ingredient_list', many=True, read_only=True
+    )
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id', 'tags', 'author', 'ingredients',
+            'is_favorited', 'is_in_shopping_cart',
+            'name', 'image', 'text', 'cooking_time',
+        )
+
+    def get_is_favorited(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return (
+                hasattr(obj, 'is_favorited_list')
+                and bool(obj.is_favorited_list)
+            )
+        return False
+
+    def get_is_in_shopping_cart(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return (
+                hasattr(obj, 'is_in_shopping_cart_list')
+                and bool(obj.is_in_shopping_cart_list)
+            )
+        return False
+
+    def get_image(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+        return None
+
+
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     ingredients = IngredientWriteSerializer(many=True, write_only=True)
     tags = serializers.PrimaryKeyRelatedField(
@@ -150,7 +194,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         recipe = Recipe.objects.create(author=request.user, **validated_data)
         recipe.tags.set(tags_data)
         self._save_ingredients(recipe, ingredients_data)
-        return recipe
+        return RecipeListSerializer(recipe, context=self.context).data
 
     def update(self, instance, validated_data):
         ingredients_data = validated_data.pop('ingredients', None)
@@ -167,47 +211,3 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             instance.ingredient_list.all().delete()
             self._save_ingredients(instance, ingredients_data)
         return instance
-
-
-class RecipeListSerializer(serializers.ModelSerializer):
-    tags = TagSerializer(many=True, read_only=True)
-    author = UserProfileSerializer(read_only=True)
-    ingredients = IngredientInRecipeReadSerializer(
-        source='ingredient_list', many=True, read_only=True
-    )
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
-    image = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Recipe
-        fields = (
-            'id', 'tags', 'author', 'ingredients',
-            'is_favorited', 'is_in_shopping_cart',
-            'name', 'image', 'text', 'cooking_time',
-        )
-
-    def get_is_favorited(self, obj):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return (
-                hasattr(obj, 'is_favorited_list')
-                and bool(obj.is_favorited_list)
-            )
-        return False
-
-    def get_is_in_shopping_cart(self, obj):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return (
-                hasattr(obj, 'is_in_shopping_cart_list')
-                and bool(obj.is_in_shopping_cart_list)
-            )
-        return False
-
-    def get_image(self, obj):
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-        return None
