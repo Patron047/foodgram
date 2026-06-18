@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from users.models import User
 
@@ -63,6 +64,10 @@ class Recipe(models.Model):
     )
     cooking_time = models.PositiveIntegerField(
         verbose_name='Время приготовления (мин)',
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(1440),
+        ],
     )
     tags = models.ManyToManyField(
         Tag,
@@ -94,11 +99,13 @@ class IngredientInRecipe(models.Model):
         Recipe,
         on_delete=models.CASCADE,
         related_name='ingredient_list',
+        verbose_name='Рецепт',
     )
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
         related_name='ingredient_list',
+        verbose_name='Ингредиент',
     )
     amount = models.PositiveSmallIntegerField(
         verbose_name='Количество',
@@ -109,7 +116,7 @@ class IngredientInRecipe(models.Model):
         verbose_name_plural = 'Ингредиенты в рецептах'
         constraints = [
             models.UniqueConstraint(
-                fields=['recipe', 'ingredient'],
+                fields=('recipe', 'ingredient'),
                 name='unique_ingredient_in_recipe',
             ),
         ]
@@ -120,10 +127,16 @@ class IngredientInRecipe(models.Model):
 
 class Favorite(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='favorites'
+        User,
+        on_delete=models.CASCADE,
+        related_name='favorites',
+        verbose_name='Пользователь',
     )
     recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, related_name='favorited_by'
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favorited_by',
+        verbose_name='Рецепт',
     )
 
     class Meta:
@@ -141,10 +154,16 @@ class Favorite(models.Model):
 
 class ShoppingCart(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='shopping_carts'
+        User,
+        on_delete=models.CASCADE,
+        related_name='shopping_carts',
+        verbose_name='Пользователь',
     )
     recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, related_name='in_shopping_carts'
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='in_shopping_carts',
+        verbose_name='Рецепт',
     )
 
     class Meta:
