@@ -5,23 +5,19 @@ from django.db.models import Prefetch
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
+                            ShoppingCart, Tag)
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import (AllowAny,
-                                        IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly
-                                        )
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 
-from recipes.models import (Favorite, Ingredient, IngredientInRecipe,
-                            Recipe, ShoppingCart, Tag)
 from ..filters import RecipeFilter
 from ..permissions import IsAuthorOrReadOnly
 from ..serializers.recipes import (IngredientSerializer,
                                    RecipeCreateUpdateSerializer,
-                                   RecipeListSerializer,
-                                   TagSerializer
-                                   )
+                                   RecipeListSerializer, TagSerializer)
 
 
 @api_view(['GET'])
