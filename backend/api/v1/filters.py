@@ -19,9 +19,9 @@ class RecipeFilter(django_filters.FilterSet):
             slugs = [s.strip() for s in value.split(',') if s.strip()]
         else:
             slugs = list(value)
-        if slugs:
-            return queryset.filter(tags__slug__in=slugs).distinct()
-        return queryset
+        if not slugs:
+            return queryset
+        return queryset.filter(tags__slug__in=slugs).distinct()
 
     def filter_is_favorited(self, queryset, name, value):
         if not self.request.user.is_authenticated:

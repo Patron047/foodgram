@@ -65,6 +65,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filterset_class = RecipeFilter
     filter_backends = (DjangoFilterBackend,)
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        read_serializer = RecipeListSerializer(
+            serializer.instance,
+            context={'request': request}
+        )
+        headers = self.get_success_headers(read_serializer.data)
+        return Response(read_serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers
+                        )
+
     def get_filterset_kwargs(self, filterset_class):
         kwargs = super().get_filterset_kwargs(filterset_class)
         kwargs['request'] = self.request
