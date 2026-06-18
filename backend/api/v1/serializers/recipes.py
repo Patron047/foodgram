@@ -63,9 +63,9 @@ class IngredientWriteSerializer(serializers.Serializer):
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
-    ingredients = IngredientWriteSerializer(many=True)
+    ingredients = IngredientWriteSerializer(many=True, write_only=True)
     tags = serializers.PrimaryKeyRelatedField(
-        queryset=Tag.objects.all(), many=True
+        queryset=Tag.objects.all(), many=True, write_only=True
     )
     image = Base64ImageField()
 
