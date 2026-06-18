@@ -107,7 +107,7 @@ class IngredientInRecipe(models.Model):
         related_name='ingredient_list',
         verbose_name='Ингредиент',
     )
-    amount = models.PositiveSmallIntegerField(
+    amount = models.PositiveIntegerField(
         verbose_name='Количество',
     )
 
