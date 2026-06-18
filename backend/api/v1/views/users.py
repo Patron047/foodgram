@@ -1,13 +1,18 @@
+from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from users.models import Subscribe, User
+from users.models import Subscribe
 
-from ..serializers.users import (AvatarSerializer, SubscribeSerializer,
-                                 UserCreateSerializer, UserProfileSerializer)
+from ..serializers.users import (AvatarSerializer, SubscribeCreateSerializer,
+                                 SubscribeSerializer, UserCreateSerializer,
+                                 UserProfileSerializer)
+
+User = get_user_model()
 
 
 class UserViewSet(DjoserUserViewSet):
@@ -50,27 +55,22 @@ class UserViewSet(DjoserUserViewSet):
         author = get_object_or_404(User, id=id)
         user = request.user
         if request.method == 'POST':
-            if user == author:
-                return Response(
-                    {'detail': 'Нельзя подписаться на самого себя'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            if Subscribe.objects.filter(user=user, author=author).exists():
-                return Response({'detail': 'Вы уже подписаны на этого автора'},
-                                status=status.HTTP_400_BAD_REQUEST
-                                )
-            Subscribe.objects.create(user=user, author=author)
-            serializer = SubscribeSerializer(author,
-                                             context={'request': request}
-                                             )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        subscription = Subscribe.objects.filter(user=user,
-                                                author=author
-                                                ).first()
-        if not subscription:
-            return Response({'detail': 'Вы не были подписаны на этого автора'},
-                            status=status.HTTP_400_BAD_REQUEST
+            serializer = SubscribeCreateSerializer(
+                data={'author': author.id},
+                context={'request': request}
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(user=user)
+            response_serializer = SubscribeSerializer(
+                author,
+                context={'request': request}
+            )
+            return Response(response_serializer.data,
+                            status=status.HTTP_201_CREATED
                             )
+        subscription = user.subscriber.filter(author=author).first()
+        if not subscription:
+            raise NotFound('Вы не были подписаны на этого автора')
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

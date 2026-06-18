@@ -1,11 +1,11 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import Subscribe, User
 
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
+class UserAdmin(BaseUserAdmin):
     search_fields = ('email', 'username')
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
 

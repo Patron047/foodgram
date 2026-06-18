@@ -1,9 +1,13 @@
+from django.contrib.auth import get_user_model
 from djoser.serializers import UserCreateSerializer as BaseUserCreateSerializer
 from recipes.models import Recipe
 from rest_framework import serializers
-from users.models import Subscribe, User
+from rest_framework.exceptions import ValidationError
+from users.models import Subscribe
 
 from .common import Base64ImageField
+
+User = get_user_model()
 
 
 class RecipeShortSerializer(serializers.ModelSerializer):
@@ -50,11 +54,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return Subscribe.objects.filter(
-                user=request.user, author=obj
-            ).exists()
-        return False
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.following.filter(user_id=request.user.pk).exists()
 
     def get_avatar(self, obj):
         if obj.avatar:
@@ -64,9 +66,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return None
 
 
-class SubscribeSerializer(serializers.ModelSerializer):
-    is_subscribed = serializers.SerializerMethodField()
-    avatar = serializers.SerializerMethodField()
+class SubscribeCreateSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания подписки с валидацией."""
+    class Meta:
+        model = Subscribe
+        fields = ('author',)
+
+    def validate_author(self, value):
+        request = self.context.get('request')
+        user = request.user
+        if user == value:
+            raise ValidationError('Нельзя подписаться на самого себя')
+        if user.subscriber.filter(author=value).exists():
+            raise ValidationError('Вы уже подписаны на этого автора')
+        return value
+
+
+class SubscribeSerializer(UserProfileSerializer):
     recipes_count = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
 
@@ -79,34 +95,21 @@ class SubscribeSerializer(serializers.ModelSerializer):
             'recipes_count', 'recipes',
         )
 
-    def get_is_subscribed(self, obj):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return Subscribe.objects.filter(
-                user=request.user, author=obj
-            ).exists()
-        return False
-
-    def get_avatar(self, obj):
-        if obj.avatar:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.avatar.url)
-        return None
-
     def get_recipes_count(self, obj):
         return obj.recipes.count()
 
     def get_recipes(self, obj):
+        """Возвращает список рецептов с учетом лимита recipes_limit"""
         request = self.context.get('request')
         limit = request.query_params.get('recipes_limit') if request else None
         recipes_qs = obj.recipes.all()
         if limit:
             try:
                 limit = int(limit)
-                recipes_qs = recipes_qs[:limit]
             except ValueError:
-                pass
+                limit = None
+            if limit:
+                recipes_qs = recipes_qs[:limit]
         return RecipeShortSerializer(recipes_qs,
                                      many=True,
                                      context=self.context
