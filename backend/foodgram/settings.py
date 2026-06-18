@@ -67,9 +67,9 @@ DJOSER = {
     'LOGIN_FIELD': 'email',
     'TOKEN_MODEL': 'rest_framework.authtoken.models.Token',
     'SERIALIZERS': {
-        'user_create': 'users.serializers.UserCreateSerializer',
-        'current_user': 'users.serializers.UserProfileSerializer',
-        'user': 'users.serializers.UserProfileSerializer',
+        'user_create': 'api.v1.serializers.users.UserCreateSerializer',
+        'current_user': 'api.v1.serializers.users.UserProfileSerializer',
+        'user': 'api.v1.serializers.users.UserProfileSerializer',
     },
 }
 
