@@ -1,31 +1,15 @@
-import base64
-
-from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer as BaseUserCreateSerializer
 from rest_framework import serializers
-
-from .models import Subscribe, User
-
-
-class Base64ImageField(serializers.ImageField):
-    """Поле для приема картинок в формате base64 через JSON"""
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format_, imgstr = data.split(';base64,')
-            ext = format_.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name=f'temp.{ext}')
-        return super().to_internal_value(data)
+from users.models import Subscribe, User
+from recipes.models import Recipe
+from .common import Base64ImageField
 
 
-class RecipeShortSerializer(serializers.Serializer):
+class RecipeShortSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов внутри подписки."""
-
-    """Используется Serializer вместо ModelSerializer, чтобы избежать
-    циклического импорта модели Recipe из приложения recipes."""
-    id = serializers.IntegerField()
-    name = serializers.CharField()
-    image = serializers.ImageField()
-    cooking_time = serializers.IntegerField()
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class AvatarSerializer(serializers.ModelSerializer):
@@ -67,7 +51,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return Subscribe.objects.filter(
-                user=request.user, author=obj,
+                user=request.user, author=obj
             ).exists()
         return False
 
@@ -98,7 +82,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return Subscribe.objects.filter(
-                user=request.user, author=obj,
+                user=request.user, author=obj
             ).exists()
         return False
 
@@ -110,11 +94,9 @@ class SubscribeSerializer(serializers.ModelSerializer):
         return None
 
     def get_recipes_count(self, obj):
-        """Возвращает общее количество рецептов автора"""
         return obj.recipes.count()
 
     def get_recipes(self, obj):
-        """Возвращает список рецептов с учетом лимита recipes_limit"""
         request = self.context.get('request')
         limit = request.query_params.get('recipes_limit') if request else None
         recipes_qs = obj.recipes.all()

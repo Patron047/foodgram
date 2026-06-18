@@ -1,21 +1,8 @@
-import base64
-
-from django.core.files.base import ContentFile
 from rest_framework import serializers
-from users.serializers import UserProfileSerializer
-
-from .models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
-                     ShoppingCart, Tag)
-
-
-class Base64ImageField(serializers.ImageField):
-    """Поле для приема картинок в формате base64 через JSON"""
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format_, imgstr = data.split(';base64,')
-            ext = format_.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name=f'temp.{ext}')
-        return super().to_internal_value(data)
+from recipes.models import (Favorite, Ingredient, IngredientInRecipe,
+                            Recipe, ShoppingCart, Tag)
+from .common import Base64ImageField
+from .users import UserProfileSerializer
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -64,7 +51,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_tags(self, value):
-        """Валидация тегов: проверка на пустоту и дубликаты"""
         if not value:
             raise serializers.ValidationError("Выберите хотя бы один тег")
         unique_tags = set(value)
@@ -73,7 +59,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        """Проверяем обязательность ingredients при PATCH/PUT"""
         request = self.context.get('request')
         if request and request.method in ('PATCH', 'PUT'):
             raw_data = self.initial_data or {}
@@ -84,7 +69,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return attrs
 
     def validate_ingredients(self, value):
-        """Ручная валидация ингредиентов при создании/обновлении"""
         if not value:
             raise serializers.ValidationError("Нужен хотя бы один ингредиент")
         validated_ingredients = []
@@ -106,7 +90,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f"Некорректное количество для ингредиента {ing_id}"
                 )
-
             if amount < 1:
                 raise serializers.ValidationError("Должно быть больше 0")
             try:
@@ -122,7 +105,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return validated_ingredients
 
     def to_representation(self, instance):
-        """Формируем полный ответ вручную"""
         tags_data = []
         for tag in instance.tags.all():
             tags_data.append({
@@ -134,8 +116,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             'id': instance.id,
             'tags': tags_data,
             'author': UserProfileSerializer(instance.author,
-                                            context=self.context
-                                            ).data,
+                                            context=self.context).data,
             'ingredients': [],
             'is_favorited': False,
             'is_in_shopping_cart': False,
@@ -188,7 +169,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             instance.ingredient_list.all().delete()
             for ing_data in ingredients_data:
                 IngredientInRecipe.objects.create(recipe=instance, **ing_data)
-
         return instance
 
 
@@ -196,9 +176,7 @@ class RecipeListSerializer(serializers.ModelSerializer):
     tags = serializers.SerializerMethodField()
     author = UserProfileSerializer(read_only=True)
     ingredients = IngredientInRecipeReadSerializer(
-        source='ingredient_list',
-        many=True,
-        read_only=True
+        source='ingredient_list', many=True, read_only=True
     )
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -213,7 +191,6 @@ class RecipeListSerializer(serializers.ModelSerializer):
         )
 
     def get_tags(self, obj):
-        """Возвращаем теги как список объектов {id, name, slug}"""
         return [
             {'id': tag.id, 'name': tag.name, 'slug': tag.slug}
             for tag in obj.tags.all()
