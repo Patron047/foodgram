@@ -95,6 +95,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             methods=('post', 'delete'),
             permission_classes=(IsAuthenticated,)
             )
+
     def favorite(self, request, pk=None):
         recipe = self.get_object()
         user = request.user
