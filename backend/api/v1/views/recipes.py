@@ -1,17 +1,15 @@
 import base64
 
-from django.db.models import Prefetch, Sum
-from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import get_object_or_404
+from django.db.models import Exists, OuterRef, Prefetch, Sum
+from django.http import HttpResponse
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
                             ShoppingCart, Tag)
 from rest_framework import status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import (AllowAny, IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from ..filters import RecipeFilter
@@ -22,31 +20,13 @@ from ..serializers.recipes import (FavoriteSerializer, IngredientSerializer,
                                    ShoppingCartSerializer, TagSerializer)
 
 
-@api_view(['GET'])
-@permission_classes((AllowAny,))
-def redirect_short_link(request, short_id):
-    try:
-        padding = '=' * (4 - len(short_id) % 4) if len(short_id) % 4 else ''
-        recipe_id = int(
-            base64.urlsafe_b64decode(short_id + padding).decode()
-        )
-    except (ValueError, Exception):
-        return Response(
-            {'detail': 'Некорректная короткая ссылка'},
-            status=status.HTTP_404_NOT_FOUND
-        )
-    recipe = get_object_or_404(Recipe, id=recipe_id)
-    return HttpResponseRedirect(f'/api/recipes/{recipe.id}/')
-
-
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny,)
     pagination_class = None
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = Ingredient.objects.all()
         name = self.request.query_params.get('name')
         if name:
             queryset = queryset.filter(name__istartswith=name)
@@ -61,7 +41,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
+    permission_classes = (IsAuthorOrReadOnly,)
     filterset_class = RecipeFilter
     filter_backends = (DjangoFilterBackend,)
 
@@ -92,6 +72,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'ingredient_list__ingredient',
         )
         if user.is_authenticated:
+            is_favorited_param = self.request.query_params.get('is_favorited')
+            is_in_shopping_cart_param = (
+                self.request.query_params.get('is_in_shopping_cart')
+            )
+
+            if is_favorited_param == '1':
+                queryset = queryset.filter(favorited_by__user=user)
+            if is_in_shopping_cart_param == '1':
+                queryset = queryset.filter(in_shopping_carts__user=user)
+            fav_subquery = Favorite.objects.filter(user=user,
+                                                   recipe=OuterRef('pk')
+                                                   )
+            cart_subquery = ShoppingCart.objects.filter(user=user,
+                                                        recipe=OuterRef('pk')
+                                                        )
+            queryset = queryset.annotate(
+                is_favorited_flag=Exists(fav_subquery),
+                is_in_shopping_cart_flag=Exists(cart_subquery)
+            )
             fav_prefetch = Prefetch(
                 'favorited_by',
                 queryset=Favorite.objects.filter(user=user),
@@ -193,7 +192,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True,
             methods=('get',),
-            permission_classes=(IsAuthenticatedOrReadOnly,),
+            permission_classes=(AllowAny,),
             url_path='get-link', url_name='get-link'
             )
     def get_link(self, request, pk=None):

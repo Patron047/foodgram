@@ -83,6 +83,8 @@ class RecipeListSerializer(serializers.ModelSerializer):
     def get_is_favorited(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
+            if hasattr(obj, 'is_favorited_flag'):
+                return obj.is_favorited_flag
             return (
                 hasattr(obj, 'is_favorited_list')
                 and bool(obj.is_favorited_list)
@@ -92,6 +94,8 @@ class RecipeListSerializer(serializers.ModelSerializer):
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
+            if hasattr(obj, 'is_in_shopping_cart_flag'):
+                return obj.is_in_shopping_cart_flag
             return (
                 hasattr(obj, 'is_in_shopping_cart_list')
                 and bool(obj.is_in_shopping_cart_list)
@@ -164,19 +168,17 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         existing_ids = {ing.id for ing in existing_ingredients}
         missing_ids = set(ingredient_ids) - existing_ids
         if missing_ids:
-            raise serializers.ValidationError(
-                f'Ингредиенты с id {", ".join(map(str, missing_ids))} '
-                f'не существуют'
-            )
+            missing_ids_str = ', '.join(str(ing_id) for ing_id in missing_ids)
+            error_message = f'Ингредиенты с id {missing_ids_str} не существуют'
+            raise serializers.ValidationError(error_message)
         ingredients_dict = {ing.id: ing for ing in existing_ingredients}
-        validated_ingredients = []
-        for item in value:
-            ing_id = item['id']
-            amount = item['amount']
-            validated_ingredients.append({
-                'ingredient': ingredients_dict[ing_id],
-                'amount': amount
-            })
+        validated_ingredients = [
+            {
+                'ingredient': ingredients_dict[item['id']],
+                'amount': item['amount']
+            }
+            for item in value
+        ]
         return validated_ingredients
 
     def _save_ingredients(self, recipe, ingredients_data):

@@ -12,6 +12,7 @@ User = get_user_model()
 
 class RecipeShortSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов внутри подписки."""
+
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
@@ -68,6 +69,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class SubscribeCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания подписки с валидацией."""
+
     class Meta:
         model = Subscribe
         fields = ('author',)
@@ -99,7 +101,7 @@ class SubscribeSerializer(UserProfileSerializer):
         return obj.recipes.count()
 
     def get_recipes(self, obj):
-        """Возвращает список рецептов с учетом лимита recipes_limit"""
+        """Возвращает список рецептов с учетом лимита recipes_limit."""
         request = self.context.get('request')
         limit = request.query_params.get('recipes_limit') if request else None
         recipes_qs = obj.recipes.all()
