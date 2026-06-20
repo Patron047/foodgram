@@ -9,6 +9,7 @@ from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -40,10 +41,19 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
+class RecipePagination(PageNumberPagination):
+    page_size = 6
+    page_size_query_param = 'limit'
+
+
 class RecipeViewSet(viewsets.ModelViewSet):
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeListSerializer
     permission_classes = (IsAuthorOrReadOnly,)
     filterset_class = RecipeFilter
     filter_backends = (DjangoFilterBackend,)
+    pagination_class = RecipePagination
+    ordering = ('-pub_date',)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -73,13 +83,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         if user.is_authenticated:
             is_favorited_param = self.request.query_params.get('is_favorited')
-            is_in_shopping_cart_param = (
-                self.request.query_params.get('is_in_shopping_cart')
-            )
+            is_in_shopping_cart_param = self.request.query_params.get('is_in_shopping_cart')
+
             if is_favorited_param == '1':
                 queryset = queryset.filter(favorited_by__user=user)
             if is_in_shopping_cart_param == '1':
                 queryset = queryset.filter(in_shopping_carts__user=user)
+
             fav_subquery = Favorite.objects.filter(user=user,
                                                    recipe=OuterRef('pk')
                                                    )
