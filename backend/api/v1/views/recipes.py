@@ -139,11 +139,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 context={'request': request}
             ).data
             return Response(serializer_data, status=status.HTTP_201_CREATED)
-        try:
-            fav = Favorite.objects.get(user=user, recipe=recipe)
-            fav.delete()
-        except Favorite.DoesNotExist:
+        fav = Favorite.objects.filter(user=user, recipe=recipe).first()
+        if not fav:
             raise ValidationError('Нет в избранном')
+        fav.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True,
@@ -165,11 +164,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 context={'request': request}
             ).data
             return Response(serializer_data, status=status.HTTP_201_CREATED)
-        try:
-            cart = ShoppingCart.objects.get(user=user, recipe=recipe)
-            cart.delete()
-        except ShoppingCart.DoesNotExist:
+        cart = ShoppingCart.objects.filter(user=user, recipe=recipe).first()
+        if not cart:
             raise ValidationError('Нет в списке покупок')
+        cart.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=('get',),

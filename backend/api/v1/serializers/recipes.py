@@ -1,7 +1,7 @@
 from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
                             ShoppingCart, Tag)
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
+from rest_framework.validators import UniqueTogetherValidator
 
 from .common import Base64ImageField
 from .users import UserProfileSerializer
@@ -11,26 +11,26 @@ class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
         fields = ('user', 'recipe')
-
-    def validate(self, attrs):
-        user = attrs.get('user')
-        recipe = attrs.get('recipe')
-        if Favorite.objects.filter(user=user, recipe=recipe).exists():
-            raise ValidationError('Уже в избранном')
-        return attrs
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Favorite.objects.all(),
+                fields=('user', 'recipe'),
+                message='Уже в избранном'
+            )
+        ]
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingCart
         fields = ('user', 'recipe')
-
-    def validate(self, attrs):
-        user = attrs.get('user')
-        recipe = attrs.get('recipe')
-        if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
-            raise ValidationError('Уже в списке покупок')
-        return attrs
+        validators = [
+            UniqueTogetherValidator(
+                queryset=ShoppingCart.objects.all(),
+                fields=('user', 'recipe'),
+                message='Уже в списке покупок'
+            )
+        ]
 
 
 class IngredientSerializer(serializers.ModelSerializer):
