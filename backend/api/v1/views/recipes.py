@@ -83,7 +83,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         if user.is_authenticated:
             is_favorited_param = self.request.query_params.get('is_favorited')
-            is_in_shopping_cart_param = self.request.query_params.get('is_in_shopping_cart')
+            is_in_shopping_cart_param = (
+                self.request.query_params.get('is_in_shopping_cart')
+            )
 
             if is_favorited_param == '1':
                 queryset = queryset.filter(favorited_by__user=user)
