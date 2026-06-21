@@ -47,8 +47,6 @@ class RecipePagination(PageNumberPagination):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    queryset = Recipe.objects.all()
-    serializer_class = RecipeListSerializer
     permission_classes = (IsAuthorOrReadOnly,)
     filterset_class = RecipeFilter
     filter_backends = (DjangoFilterBackend,)
@@ -68,11 +66,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_201_CREATED,
                         headers=headers
                         )
-
-    def get_filterset_kwargs(self, filterset_class):
-        kwargs = super().get_filterset_kwargs(filterset_class)
-        kwargs['request'] = self.request
-        return kwargs
 
     def get_queryset(self):
         user = self.request.user
@@ -139,10 +132,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 context={'request': request}
             ).data
             return Response(serializer_data, status=status.HTTP_201_CREATED)
-        fav = Favorite.objects.filter(user=user, recipe=recipe).first()
-        if not fav:
-            raise ValidationError('Нет в избранном')
-        fav.delete()
+        serializer = FavoriteSerializer(
+            data={'user': user.id, 'recipe': recipe.id},
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        Favorite.objects.filter(user=user, recipe=recipe).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True,
@@ -164,10 +159,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 context={'request': request}
             ).data
             return Response(serializer_data, status=status.HTTP_201_CREATED)
-        cart = ShoppingCart.objects.filter(user=user, recipe=recipe).first()
-        if not cart:
-            raise ValidationError('Нет в списке покупок')
-        cart.delete()
+        serializer = ShoppingCartSerializer(
+            data={'user': user.id, 'recipe': recipe.id},
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=('get',),
@@ -184,12 +181,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ).order_by('ingredient__name')
 
         content_lines = [
-            f"{index}. {item['ingredient__name']} "
-            f"({item['ingredient__measurement_unit']}) — "
-            f"{item['total_amount']}"
+            f"{index}. {item.get('ingredient__name', '')} "
+            f"({item.get('ingredient__measurement_unit', '')}) — "
+            f"{item.get('total_amount', '')}"
             for index, item in enumerate(shopping_list, 1)
         ]
-        content = '\n'.join(['Список покупок:'] + content_lines) + '\n'
+        content = '\n'.join(('Список покупок:', *content_lines)) + '\n'
 
         response = HttpResponse(
             content, content_type='text/plain; charset=utf-8'

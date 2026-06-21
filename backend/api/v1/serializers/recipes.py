@@ -19,6 +19,15 @@ class FavoriteSerializer(serializers.ModelSerializer):
             )
         ]
 
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request and request.method == 'DELETE':
+            user = attrs.get('user') or request.user
+            recipe = attrs.get('recipe')
+            if not Favorite.objects.filter(user=user, recipe=recipe).exists():
+                raise serializers.ValidationError('Нет в избранном')
+        return attrs
+
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,6 +40,17 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
                 message='Уже в списке покупок'
             )
         ]
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request and request.method == 'DELETE':
+            user = attrs.get('user') or request.user
+            recipe = attrs.get('recipe')
+            if not ShoppingCart.objects.filter(user=user,
+                                               recipe=recipe
+                                               ).exists():
+                raise serializers.ValidationError('Нет в списке покупок')
+        return attrs
 
 
 class IngredientSerializer(serializers.ModelSerializer):
