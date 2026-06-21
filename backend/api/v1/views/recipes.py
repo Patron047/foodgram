@@ -1,7 +1,8 @@
 import base64
 
 from django.db.models import Exists, OuterRef, Prefetch, Sum
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
@@ -18,6 +19,24 @@ from ..serializers.recipes import (FavoriteSerializer, IngredientSerializer,
                                    RecipeCreateUpdateSerializer,
                                    RecipeListSerializer,
                                    ShoppingCartSerializer, TagSerializer)
+
+
+def _decode_short_id(short_id):
+    """Выносит логику декодирования из try-except для чистоты кода."""
+    padding = '=' * (4 - len(short_id) % 4) if len(short_id) % 4 else ''
+    decoded_bytes = base64.urlsafe_b64decode(short_id + padding)
+    return int(decoded_bytes.decode())
+
+
+def redirect_short_link(request, short_id):
+    """Перенаправляет по короткой ссылке на страницу рецепта."""
+    try:
+        recipe_id = _decode_short_id(short_id)
+    except (ValueError, UnicodeDecodeError, OverflowError):
+        raise Http404('Некорректная короткая ссылка')
+
+    get_object_or_404(Recipe, id=recipe_id)
+    return HttpResponseRedirect(f'/recipes/{recipe_id}/')
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -207,4 +226,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ).decode().rstrip('=')
         path = reverse('short-link-redirect', kwargs={'short_id': short_id})
         short_link = request.build_absolute_uri(path)
-        return Response({'short-link': short_link}, status=status.HTTP_200_OK)
+        return Response({'short-link': short_link},
+                        status=status.HTTP_200_OK
+                        )

@@ -2,8 +2,6 @@ import django_filters
 from recipes.models import Recipe, Tag
 
 
-# Этот фильтр используется в vievs/recipes.py, он туда импортирован
-# и используется в методе get_filterset_kwargs класса RecipeViewSet.
 class RecipeFilter(django_filters.FilterSet):
     tags = django_filters.ModelMultipleChoiceFilter(
         field_name='tags__slug',
